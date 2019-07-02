@@ -10,15 +10,16 @@ import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.CompilerControl;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.profile.HotspotRuntimeProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
-
 
 /**
  * 
@@ -27,121 +28,87 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
  */
 public class JMHArraySearch {
 
-	@State(Scope.Thread)
+	@State(Scope.Benchmark)
 	public static class Elements {
- 
+
 		int[] array;
-		int[] surelyPresent,randomlyChoosen;
 		HashSet<Integer> lookup = new HashSet<Integer>();
 
+
+		@Param({"0","8","16","24","32","40","48","56"})
+		public int mileStoneIdx;
+		
 		@Setup
 		public void setup() {
-			array = new int[64];
-			surelyPresent= new int[8];
-			randomlyChoosen = new int[8];
-			
+			array = new int[64];		
 			for (int i = 0; i < array.length; i++) {
 				array[i] = ThreadLocalRandom.current().nextInt(65535);
 				lookup.add(array[i]);
-				if(i%8==0){
-					surelyPresent[i==0?0:i/8]=array[i];
-				}
 			}
-			for(int i=0; i<randomlyChoosen.length; i++){
-				randomlyChoosen[i]=array[ThreadLocalRandom.current().nextInt(64)];
-			}
-			System.out.println("Data: "+Arrays.toString(array));
-			System.out.println("Milestone: "+Arrays.toString(surelyPresent));
-			System.out.println("Random: "+Arrays.toString(randomlyChoosen));
+			System.out.println("Data: " + Arrays.toString(array));
+			System.out.println("Milestone: "+mileStoneIdx);
 		}
 
 		@TearDown
 		public void shutdown() {
 
 		}
-		
-		public final void search(){
+
+		public final void search() {
 			final int len = array.length;
-			final int toFind = surelyPresent[ThreadLocalRandom.current().nextInt(8)];
-			for (int i = 0; i < len ; i++) {
-				if(array[i]==toFind){
+			final int toFind = array[mileStoneIdx];
+			for (int i = 0; i < len; i++) {
+				if (array[i] == toFind) {
+					return;
+				}
+			}
+		}
+
+		public final void searchFail() {
+			final int len = array.length;
+			for (int i = 0; i < len; i++) {
+				if (array[i] == -1) {
 					return;
 				}
 			}
 		}
 		
-		public final void searchRnd(){
-			final int len = array.length;
-			final int toFind = randomlyChoosen[ThreadLocalRandom.current().nextInt(8)];
-			for (int i = 0; i < len ; i++) {
-				if(array[i]==toFind){
-					return;
-				}
-			}
-		}
-		
-		public final void searchFail(){
-			final int len = array.length;
-			for (int i = 0; i < len ; i++) {
-				if(array[i]==-1){
-					return;
-				}
-			}
-		}
-		
-		
-		public final void searchBin(){
-			final int toFind = surelyPresent[ThreadLocalRandom.current().nextInt(8)];
+		public final void searchBin() {
+			final int toFind = array[mileStoneIdx];
 			Arrays.binarySearch(array, toFind);
 		}
-		
-		
-		public final void searchBinRandom(){
-			final int toFind = randomlyChoosen[ThreadLocalRandom.current().nextInt(8)];
-			Arrays.binarySearch(array, toFind);
-		}
-		
-		
-		public final void searchBinFail(){
+
+		public final void searchBinFail() {
 			Arrays.binarySearch(array, -1);
 		}
-		
-		public final void searchBySetRnd(){
-			final int toFind = randomlyChoosen[ThreadLocalRandom.current().nextInt(8)];
+
+		public final void searchBySet() {
+			final int toFind = array[mileStoneIdx];
 			lookup.contains(toFind);
 		}
 		
-		public final void searchBySetFail(){
+		public final void searchBySetFail() {
 			lookup.contains(-1);
 		}
-		
-	}//END
+	
+	}// END
 
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
 	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
-	public void measureThroughputArray(Elements elem) throws InterruptedException {
+	public void measureThroughputArrayMileStone(Elements elem) throws InterruptedException {
 		elem.search();
 	}
-
-
-	@Benchmark
-	@BenchmarkMode(Mode.Throughput)
-	@OutputTimeUnit(TimeUnit.MICROSECONDS)
-	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
-	public void measureThroughputRandom(Elements elem) throws InterruptedException {
-		elem.searchRnd();
-	}
+	
 	
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
 	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
-	public void measureThroughputFail(Elements elem) throws InterruptedException {
+	public void measureThroughputArrayFail(Elements elem) throws InterruptedException {
 		elem.searchFail();
 	}
-	
 	
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
@@ -150,32 +117,24 @@ public class JMHArraySearch {
 	public void measureThroughputBin(Elements elem) throws InterruptedException {
 		elem.searchBin();
 	}
-	
-	@Benchmark
-	@BenchmarkMode(Mode.Throughput)
-	@OutputTimeUnit(TimeUnit.MICROSECONDS)
-	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
-	public void measureThroughputBinRnd(Elements elem) throws InterruptedException {
-		elem.searchBinRandom();
-	}
-	
-	
+
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
 	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
 	public void measureThroughputBinFail(Elements elem) throws InterruptedException {
-		elem.searchBinFail();
+		elem.searchFail();
 	}
 	
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
 	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
-	public void measureThroughputSetRnd(Elements elem) throws InterruptedException {
-		elem.searchBySetRnd();
+	public void measureThroughputSet(Elements elem) throws InterruptedException {
+		elem.searchBySet();
 	}
 	
+
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -184,15 +143,17 @@ public class JMHArraySearch {
 		elem.searchBySetFail();
 	}
 	
+	
 	public static void main(String[] args) throws RunnerException {
-		
+
 		Options opt = new OptionsBuilder()
 				.include(JMHArraySearch.class.getSimpleName())
-				.forks(1)
-				.threads(4)
-				.build();
+				  .forks(1)
+				  //.threads(4)
+				  //.addProfiler(HotspotRuntimeProfiler.class)
+			.build();
 
 		new Runner(opt).run();
 	}
 
-}
+}//END
