@@ -1,13 +1,13 @@
 package it.fago.bench.simple;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.CompilerControl;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
@@ -29,29 +29,26 @@ public class JMHArraySearch {
 
 	@State(Scope.Thread)
 	public static class Elements {
-
-		Random rnd;
+ 
 		int[] array;
 		int[] surelyPresent,randomlyChoosen;
 		HashSet<Integer> lookup = new HashSet<Integer>();
 
 		@Setup
 		public void setup() {
-			
-			rnd = new Random();
 			array = new int[64];
 			surelyPresent= new int[8];
 			randomlyChoosen = new int[8];
 			
 			for (int i = 0; i < array.length; i++) {
-				array[i] = rnd.nextInt(65535);
+				array[i] = ThreadLocalRandom.current().nextInt(65535);
 				lookup.add(array[i]);
 				if(i%8==0){
 					surelyPresent[i==0?0:i/8]=array[i];
 				}
 			}
 			for(int i=0; i<randomlyChoosen.length; i++){
-				randomlyChoosen[i]=array[rnd.nextInt(64)];
+				randomlyChoosen[i]=array[ThreadLocalRandom.current().nextInt(64)];
 			}
 			System.out.println("Data: "+Arrays.toString(array));
 			System.out.println("Milestone: "+Arrays.toString(surelyPresent));
@@ -65,7 +62,7 @@ public class JMHArraySearch {
 		
 		public final void search(){
 			final int len = array.length;
-			final int toFind = surelyPresent[rnd.nextInt(8)];
+			final int toFind = surelyPresent[ThreadLocalRandom.current().nextInt(8)];
 			for (int i = 0; i < len ; i++) {
 				if(array[i]==toFind){
 					return;
@@ -75,7 +72,7 @@ public class JMHArraySearch {
 		
 		public final void searchRnd(){
 			final int len = array.length;
-			final int toFind = randomlyChoosen[rnd.nextInt(8)];
+			final int toFind = randomlyChoosen[ThreadLocalRandom.current().nextInt(8)];
 			for (int i = 0; i < len ; i++) {
 				if(array[i]==toFind){
 					return;
@@ -94,13 +91,13 @@ public class JMHArraySearch {
 		
 		
 		public final void searchBin(){
-			final int toFind = surelyPresent[rnd.nextInt(8)];
+			final int toFind = surelyPresent[ThreadLocalRandom.current().nextInt(8)];
 			Arrays.binarySearch(array, toFind);
 		}
 		
 		
 		public final void searchBinRandom(){
-			final int toFind = randomlyChoosen[rnd.nextInt(8)];
+			final int toFind = randomlyChoosen[ThreadLocalRandom.current().nextInt(8)];
 			Arrays.binarySearch(array, toFind);
 		}
 		
@@ -110,7 +107,7 @@ public class JMHArraySearch {
 		}
 		
 		public final void searchBySetRnd(){
-			final int toFind = randomlyChoosen[rnd.nextInt(8)];
+			final int toFind = randomlyChoosen[ThreadLocalRandom.current().nextInt(8)];
 			lookup.contains(toFind);
 		}
 		
@@ -123,6 +120,7 @@ public class JMHArraySearch {
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
+	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
 	public void measureThroughputArray(Elements elem) throws InterruptedException {
 		elem.search();
 	}
@@ -131,6 +129,7 @@ public class JMHArraySearch {
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
+	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
 	public void measureThroughputRandom(Elements elem) throws InterruptedException {
 		elem.searchRnd();
 	}
@@ -138,6 +137,7 @@ public class JMHArraySearch {
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
+	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
 	public void measureThroughputFail(Elements elem) throws InterruptedException {
 		elem.searchFail();
 	}
@@ -146,6 +146,7 @@ public class JMHArraySearch {
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
+	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
 	public void measureThroughputBin(Elements elem) throws InterruptedException {
 		elem.searchBin();
 	}
@@ -153,6 +154,7 @@ public class JMHArraySearch {
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
+	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
 	public void measureThroughputBinRnd(Elements elem) throws InterruptedException {
 		elem.searchBinRandom();
 	}
@@ -161,6 +163,7 @@ public class JMHArraySearch {
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
+	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
 	public void measureThroughputBinFail(Elements elem) throws InterruptedException {
 		elem.searchBinFail();
 	}
@@ -168,6 +171,7 @@ public class JMHArraySearch {
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
+	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
 	public void measureThroughputSetRnd(Elements elem) throws InterruptedException {
 		elem.searchBySetRnd();
 	}
@@ -175,6 +179,7 @@ public class JMHArraySearch {
 	@Benchmark
 	@BenchmarkMode(Mode.Throughput)
 	@OutputTimeUnit(TimeUnit.MICROSECONDS)
+	@CompilerControl(CompilerControl.Mode.DONT_INLINE)
 	public void measureThroughputSetFail(Elements elem) throws InterruptedException {
 		elem.searchBySetFail();
 	}
